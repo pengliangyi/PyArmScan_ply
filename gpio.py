@@ -7,8 +7,7 @@ import re
 
 class GPIO(object):
     _rpName = re.compile("GPIO(?P<chip>[0-8])(?P<bank>[A-D])(?P<offset>[0-7])")
-    # _gpio_base = r"/sys/class/gpio"
-    _gpio_base = r"/Users/russellluo/Projects/personal/huago/code/gpio"
+    _gpio_base = r"/sys/class/gpio"
     _export = os.path.join(_gpio_base, "export")
     _unexport = os.path.join(_gpio_base, "unexport")
     
