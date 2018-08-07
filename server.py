@@ -1,17 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from time import sleep
+from __future__ import unicode_literals
+
+from gevent.monkey import patch_all; patch_all()
+
 import Queue
 
-from gevent.monkey import patch_all; patch_all()  
 from gevent.pywsgi import WSGIServer
 from flask import Flask, jsonify, request, send_file
+
+from scanner import Scanner
+
 
 app = Flask(__name__)
 # app.debug = True
 
-
+# 事件队列
 events = Queue.Queue()
+
+# 扫描器
+scanner = Scanner(events)
+scanner.async_handle_events()
 
 
 @app.route('/events', methods=['POST'])
@@ -40,7 +49,7 @@ def send_command():
     command = request.json['command']
 
     if command == 'scan':
-        print('start to scan')
+        scanner.scan()
     else:
         print('unrecognized command: %s' % command)
 

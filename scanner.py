@@ -1,87 +1,42 @@
 # -*- coding: utf-8 -*-
 
-from threading import Thread
-import time
+from __future__ import unicode_literals
 
-from fireflyP import Pwm
-from fireflyP import Gpio
-
+import helpers
 from gpio import GPIO
 
 
-class GPIOReader(object):
-    """GPIO 状态读取类: 读状态,timeout 阻塞读事件."""
-
-    def __init__(self, gpio_name):
-        self._gpio = GPIO(gpio_name)
-        self._gpio.set_input()
-
-        self._value = None
-
-    def read_value(self):
-        return self._gpio.read()
-
-    def read_edge(self, edge, timeout_ms):
-        def callback(val):
-            self._value = val
-
-        self._gpio.wait(edge, timeout_ms, callback)
-        return self._value
+gpio_name_map = {
+    'papper': 'GPIO8A6',  # 参数待修改
+}
 
 
-class GPIOAsyncHandler(object):
-    """GPIO 事件异步处理类."""
+class Scanner(object):
 
-    def __init__(self, gpio_name):
-        self._gpio = GPIO(gpio_name)
-        self._gpio.set_input()
+    def __init__(self, events):
+        self._events = events
 
-    def callback(self, val):
-        """子类需要覆盖该函数,用于执行真正的回调处理."""
-        raise NotImplementedError()
+        # 机盖的 GPIO 端口
+        self._jigai_gpio = helpers.GPIOReader.from_gpio_name('GPIO8A7')
 
-    def handle(self, edge, timeout_ms):
-        def handler():
-            while True:
-                self._gpio.wait(edge, timeout_ms, callback=self.callback)
-        t = Thread(target=handler)
-        t.start()
+        # 卡纸的 GPIO 端口
+        self._kazhi_async_handler = helpers.GPIOAsyncHandler.from_gpio_name(gpio_name_map['papper'])
+        # 马达 xx 端口
+        self._motor_pwm1 = helpers.PWMController('GPIO7A1', 'PWM1', mux=1)  # 参数待修改
 
+    def async_handle_events(self):
+        """开启所有的事件异步处理器."""
+        self._kazhi_async_handler.handle(GPIO.BOTH_EDGE, 60000, self.kazhi_callback)  # wait 60s for each loop
 
-class PWMController(object):
-    """电机控制类."""
+    def scan(self):
+        # 1. 判断是否合上机盖
+        val = self._jigai_gpio.read_value()
+        if val != '合上机盖的 val':
+            self._events.put('合上机盖')
 
-    def __init__(self, gpio_name, pwm_name, mux):
-        Gpio.init()
-        self._gpio = Gpio(gpio_name)
-        self._gpio.set_mux(mux)
+        print('start to scan')
 
-        Pwm.init()
-        self._pwm = Pwm(pwm_name)
-
-    def set_config(self, freq, duty, wait_s):
-        self._pwm.set_config(freq, duty)
-        self._pwm.start()
-        time.sleep(wait_s)
-        self._pwm.stop()
-
-
-if __name__ == '__main__':
-    # PWMController example
-    pwmc = PWMController('GPIO7A1', 'PWM1', mux=1)  # set pwm1 mux
-    pwmc.set_config(1000000, 500000, wait_s=10)  # set PWM1: freq=1kHz, duty=50%
-
-    # GPIOReader example
-    gpio1 = GPIOReader('GPIO8A6')
-    gpio1.read_value()  # read normal value
-    gpio1.read_edge(GPIO.BOTH_EDGE, 60000)  # read event value, timeout: 60s
-
-    # GPIOAsyncHandler example
-    class GPIOKaZhiAsyncHandler(GPIOAsyncHandler):
-        """卡纸的异步处理类"""
-        def callback(self, val):
-            print "callback: pin_level:{}".format(val)
-            # Stop all operations
-            # ...
-    gpio2 = GPIOKaZhiAsyncHandler('GPIO8A7')
-    gpio2.handle(GPIO.BOTH_EDGE, 60000)  # wait 60s for each loop
+    def kazhi_callback(self, val):
+        """卡纸的异步处理."""
+        print('stop all operations...')
+        self._motor_pwm1.set_config(1000000, 500000, wait_s=10)  # 参数待修改
