@@ -1,4 +1,4 @@
-# huago scanner
+# PyArmScan
 
 ## 安装依赖
 
@@ -24,20 +24,12 @@ $ python client.py
 
 ## 开始扫描
 
-在 client 端发送 “扫描” 命令：
+在 client 端发送 “开始” 命令：
 
 ```bash
 # client
-cmd> scan
+cmd> start
 OK
-```
-
-在 server 端看日志打印：
-
-```bash
-...
-start to scan
-...
 ```
 
 ## 手动触发 “生成图像” 的事件：
