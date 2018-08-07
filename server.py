@@ -48,8 +48,8 @@ def get_next_image():
 def send_command():
     command = request.json['command']
 
-    if command == 'scan':
-        scanner.scan()
+    if command == 'start':
+        scanner.start()
     else:
         print('unrecognized command: %s' % command)
 
