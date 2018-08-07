@@ -41,6 +41,7 @@ def get_next_event():
 
 @app.route('/next_image', methods=['GET'])
 def get_next_image():
+    # Read image from DMA?
     return send_file('out.jpg', mimetype='image/jpeg')
 
 
@@ -48,7 +49,9 @@ def get_next_image():
 def send_command():
     command = request.json['command']
 
-    if command == 'start':
+    if command == 'boot':
+        scanner.boot()
+    elif command == 'start':
         scanner.start()
     else:
         print('unrecognized command: %s' % command)
