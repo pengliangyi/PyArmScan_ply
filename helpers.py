@@ -73,6 +73,56 @@ class PWMController(object):
         self._pwm.stop()
 
 
+class SmartGpio(Gpio):
+    """智能 Gpio."""
+
+    instantiated = False
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.instantiated:
+            # 第一次实例化时, 自动调用 Gpio.init()
+            Gpio.init()
+            cls.instantiated = True
+        return object.__new__(cls, *args, **kwargs)
+
+
+class SmartPwm(Pwm):
+    """智能 Pwm."""
+
+    instantiated = False
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.instantiated:
+            # 第一次实例化时, 自动调用 Pwm.init()
+            Gpio.init()
+            cls.instantiated = True
+        return object.__new__(cls, *args, **kwargs)
+
+
+class MotorController(object):
+    """电机控制类 v2."""
+
+    def __init__(self, pwm_args, dir_args, enable_args):
+        """
+        :param pwm_args: e.g. {'gpio_name': 'GPIO7A1', 'mux': 1, 'name': 'PWM1', 'freq': 'xx', 'duty': 'xx'}
+        :param dir_args: e.g. {'name': 'GPIO8A4', 'write': 0}
+        :param enable_args: e.g. {'name': 'GPIO8A7', 'write': 1}
+        """
+        self._gpio = SmartGpio(pwm_args['gpio_name'])
+        self._gpio.set_mux(pwm_args['mux'])
+
+        self._pwm = SmartPwm(pwm_args['name'])
+        self._pwm.set_config(pwm_args['freq'], pwm_args['duty'])
+
+        self._dir = GPIO(dir_args['name'])
+        self._dir.set_output()
+        self._dir.write(dir_args['write'])
+
+        self._enable = GPIO(enable_args['name'])
+        self._enable.set_output()
+        self._enable.write(enable_args['write'])
+
+
 if __name__ == '__main__':
     # PWMController example
     pwmc = PWMController('GPIO7A1', 'PWM1', mux=1)  # set pwm1 mux
