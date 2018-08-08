@@ -4,7 +4,9 @@ from __future__ import unicode_literals
 
 from gevent.monkey import patch_all; patch_all()
 
+import argparse
 import Queue
+from threading import Thread
 
 from gevent.pywsgi import WSGIServer
 from flask import Flask, jsonify, request, send_file
@@ -21,6 +23,11 @@ events = Queue.Queue()
 # 扫描器
 scanner = Scanner(events)
 scanner.async_handle_events()
+
+
+def run_in_thread(target):
+    t = Thread(target=target)
+    t.start()
 
 
 @app.route('/events', methods=['POST'])
@@ -50,15 +57,20 @@ def send_command():
     command = request.json['command']
 
     if command == 'boot':
-        scanner.boot()
+        run_in_thread(scanner.boot)
     elif command == 'start':
-        scanner.start()
+        run_in_thread(scanner.start)
     else:
-        print('unrecognized command: %s' % command)
+        return 'Unrecognized command: %s' % command, 400
 
-    return ''
+    return 'OK'
 
 
-if __name__ == '__main__':  
-    server = WSGIServer(('127.0.0.1', 5000), app)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default='127.0.0.1', help='The host of server.')
+    parser.add_argument('--port', help='The port of server.')
+    args = parser.parse_args()
+
+    server = WSGIServer((args.host, args.port), app)
     server.serve_forever()
