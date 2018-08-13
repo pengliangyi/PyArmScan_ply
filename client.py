@@ -13,7 +13,7 @@ from PIL import Image
 class EventHandler(object):
 
     next_event_path = '/next_event'
-    next_image_path = '/next_image'
+        next_image_path = '/next_image'
 
     def __init__(self, base_url, timeout_s=10):
         self._next_event_url = base_url + self.next_event_path

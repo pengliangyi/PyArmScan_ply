@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-from gevent.monkey import patch_all; patch_all()
+#from gevent.monkey import patch_all; patch_all()
 
 import argparse
 import Queue
@@ -12,6 +12,8 @@ from gevent.pywsgi import WSGIServer
 from flask import Flask, jsonify, request, send_file
 
 from scanner import Scanner
+import glob
+import os
 
 
 app = Flask(__name__)
@@ -24,6 +26,13 @@ events = Queue.Queue()
 scanner = Scanner(events)
 scanner.async_handle_events()
 
+WSI_MASK_PATH = '/home/firefly/color'#存放图片的文件夹路径
+wsi_mask_paths = glob.glob(os.path.join(WSI_MASK_PATH, '*.jpg'))
+wsi_mask_paths.sort()
+
+imageindex = 0
+
+print wsi_mask_paths
 
 def run_in_thread(target):
     t = Thread(target=target)
@@ -49,17 +58,30 @@ def get_next_event():
 @app.route('/next_image', methods=['GET'])
 def get_next_image():
     # Read image from DMA?
-    return send_file('out.jpg', mimetype='image/jpeg')
+    global imageindex
+    global wsi_mask_paths
+    path = wsi_mask_paths[imageindex]
+    if imageindex >= len(wsi_mask_paths):
+        imageindex = 0
+    else:
+        imageindex = imageindex + 1
+    return send_file(path, mimetype='image/jpeg')
 
 
 @app.route('/commands', methods=['POST'])
 def send_command():
     command = request.json['command']
+    print command
 
     if command == 'boot':
-        run_in_thread(scanner.boot)
+        scanner.boot()
     elif command == 'start':
         run_in_thread(scanner.start)
+     #   scanner.start()
+    elif command == 'test':
+        scanner.test()
+    elif command == 'stop':
+        scanner.stop()
     else:
         return 'Unrecognized command: %s' % command, 400
 
@@ -68,9 +90,10 @@ def send_command():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', default='127.0.0.1', help='The host of server.')
+    parser.add_argument('--host', default='0.0.0.0', help='The host of server.')
     parser.add_argument('--port', help='The port of server.')
     args = parser.parse_args()
 
-    server = WSGIServer((args.host, args.port), app)
+   # server = WSGIServer((args.host, args.port), app)
+    server = WSGIServer((args.host, 5000), app)
     server.serve_forever()

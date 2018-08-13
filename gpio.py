@@ -66,7 +66,7 @@ class GPIO(object):
             bank = result.group('bank')
             offset = int(result.group('offset'), 10)
         else:
-            raise ValueError("Invalid GPIO Name: {}".format(name))
+            raise ValueError("Invalid GPIO Name: {}".format(self.name))\
         
         _id = cls._id_base[chip] + (ord(bank) - ord('A')) * 8 + offset
         return str(_id)
@@ -126,7 +126,7 @@ class GPIO(object):
         direction = self._read_file(self.fdirection).strip("\n")
         if direction == self.OUT:
             print "GPIO must be input"
-            return
+            return -1
 
         self._write_file(self.fedge, edge)
 
@@ -137,12 +137,14 @@ class GPIO(object):
         events = po.poll(timeout_ms)
         if not events:
             print "timeout"
+            return 1
         else:
             val = self.read()
             if callback is not None:
                 callback(val)
             else:
                 print "pin level: {}".format(val)
+            return 0
 
     def __del__(self):
         if self.value is not None:
