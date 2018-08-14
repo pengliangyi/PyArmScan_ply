@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 
 import argparse
 import Queue
-from threading import Thread
+import time
+
 
 from gevent.pywsgi import WSGIServer
 from flask import Flask, jsonify, request, send_file
@@ -34,9 +35,7 @@ imageindex = 0
 
 print wsi_mask_paths
 
-def run_in_thread(target):
-    t = Thread(target=target)
-    t.start()
+
 
 
 @app.route('/events', methods=['POST'])
@@ -76,7 +75,7 @@ def send_command():
     if command == 'boot':
         scanner.boot()
     elif command == 'start':
-        run_in_thread(scanner.start)
+        scanner.start()
      #   scanner.start()
     elif command == 'test':
         scanner.test()
@@ -96,4 +95,6 @@ if __name__ == '__main__':
 
    # server = WSGIServer((args.host, args.port), app)
     server = WSGIServer((args.host, 5000), app)
+
+   # scanner.boot()
     server.serve_forever()

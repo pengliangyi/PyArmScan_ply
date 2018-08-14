@@ -10,6 +10,9 @@ from fireflyP import Gpio
 
 from gpio import GPIO
 
+class MotorFreq(object):
+    CUOZHI_FREQ = 10000000/16
+    ZOUZHI_FREQ = CUOZHI_FREQ
 
 class GPIOReader(object):
     """GPIO 状态读取类: 读状态,timeout 阻塞读事件."""
@@ -80,8 +83,8 @@ class SmartPwm(Pwm):
 
 class MotorController(object):
     """电机控制类 v2."""
-    Front_Dir = 1
-    Back_Dir = 0
+    FRONT_DIR = 1
+    BACK_DIR = 0
 
     def __init__(self, pwm_args, dir_args, enable_args):
         """
@@ -119,62 +122,87 @@ class MotorController(object):
     def dir(self, value):
         self._dir.write(value)
 
+class ZouZhiMotor(object):
+    def __init__(self):
+        self._mc = MotorController({'name': 'PWM1', 'freq': MotorFreq.ZOUZHI_FREQ}, {'name': 'GPIO8A4', 'write': 1},{'name': 'GPIO8A7', 'write': 1})
+
+
+    def start(self):
+        self._mc.dir = MotorController.BACK_DIR
+        self._mc.start()
+
+    def speedup(self):
+        self._mc.dir = MotorController.BACK_DIR
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ * 2)
+        self._mc.start()
+        time.sleep(0.2)
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ * 1.5)
+        self._mc.start()
+        time.sleep(0.15)
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ)
+        self._mc.start()
+
+    def stop(self):
+        self._mc.stop()
+
+class CuoZhiMotor(object):
+    def __init__(self):
+        self._mc = MotorController({'name': 'PWM3', 'freq': MotorFreq.CUOZHI_FREQ}, {'name': 'GPIO6B0', 'write': 0}, {'name': 'GPIO5C0', 'write': 1})
+        self._mc.dir = MotorController.FRONT_DIR
+
+    def start(self):
+        self._mc.start()
+
+    def speedup(self):
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ * 2)
+        self._mc.start()
+        time.sleep(0.2)
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ * 3 / 4)
+        self._mc.start()
+        time.sleep(0.15)
+        self._mc.set_freq(MotorFreq.ZOUZHI_FREQ * 2 / 3)
+        self._mc.start()
+
+    def reset(self):
+        self._mc.start()
+        time.sleep(0.5)
+        self._mc.stop()
+        self._mc.dir = MotorController.BACK_DIR
+        self._mc.start()
+        time.sleep(0.06)
+        self._mc.stop()
+        self._mc.dir = MotorController.FRONT_DIR
+
+    def stop(self):
+        self._mc.stop()
+
+class DoubleSensor(object):
+    @property
+    def result(self):
+        return 0
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+class Capture(object):
+    def __init__(self):
+        pass
+
+    def acquier(self):
+        pass
+
+
 if __name__ == '__main__':
     # PWMController example
     # pwmc = PWMController('GPIO7A1', 'PWM1', mux=1)  # set pwm1 mux
     # pwmc.set_config(1000000, 500000, wait_s=10)  # set PWM1: freq=1kHz, duty=50%
     # 第一次实例化时, 自动调用 Pwm.init()
+    mc = CuoZhiMotor()
+    mc.reset()
+    time.sleep(1)
+    mc.stop()
 
-    motor_Main =  MotorController({'name': 'PWM1', 'freq': 1000000}, {'name': 'GPIO8A4', 'write': 0},{'name': 'GPIO8A7', 'write': 1})  # 参数待修改
-    motor_Main.dir = MotorController.Back_Dir
-    motor_Main.start()
-    #time.sleep(5)
-    # motor_Main.stop()
-    # motor_Main.dir = MotorController.Back_Dir
-    # motor_Main.start()
-    # time.sleep(5)
-    # motor_Main.stop()
-    #
-    motor_feeding = MotorController({'name': 'PWM3', 'freq': 1000000},{'name': 'GPIO6B0', 'write': 0},{'name': 'GPIO5C0', 'write': 1})  # 参数待修改
-    motor_feeding.dir = MotorController.Front_Dir
-    motor_feeding.start()
-    # time.sleep(5)
-    # motor_feeding.stop()
-    # motor_feeding.dir = MotorController.Back_Dir
-    # motor_feeding.start()
-    # time.sleep(5)
-    # motor_feeding.stop()
 
-    # GPIOReader example
-
-    gpio_reader1 = GPIOReader.from_gpio_name('GPIO5B4')
-    val = gpio_reader1.read_value()  # read normal value
-    val = gpio_reader1.read_edge(GPIO.RISING_EDGE, 20000)
-    if  val is None:  # read event value, timeout: 60s
-        print 'time out'
-    elif val == 1:
-        print 'raising'
-    else:
-        print 'failing'
-
-    val = gpio_reader1.read_edge(GPIO.FALLING_EDGE, 20000)
-    if val is None:  # read event value, timeout: 60s
-        print 'time out'
-    elif val == 1:
-        print 'raising'
-    else:
-        print 'failing'
-
-    motor_Main.stop()
-    motor_feeding.stop()
-
-    # # GPIOAsyncHandler example
-    # def callback(self, val):
-    #     """卡纸的异步处理类"""
-    #     print('callback: pin_level:{}'.format(val))
-    #     # Stop all operations
-    #     # ...
-    # gpio2 = GPIO('GPIO8A7')
-    # gpio2.set_input()
-    # gpio_reader2 = GPIOAsyncHandler(gpio2)
-    # gpio_reader2.handle(GPIO.BOTH_EDGE, 60000, callback)  # wait 60s for each loop
